@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keep Alive</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            font-weight: bold;
+            background: linear-gradient(to right, #007bff, #00bfff);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            background: #ffffff;
+            padding: 40px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            width: 70%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            background: linear-gradient(to right, #007bff, #00bfff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        input[type="text"] {
+            width: 90%; 
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            transition: border 0.3s;
+            font-weight: bold;
+        }
+
+        input[type="text"]:focus {
+            border-color: #007bff; 
+            outline: none; 
+        }
+
+        button {
+            background: linear-gradient(to right, #007bff, #00bfff);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 16px;
+            margin: 5px;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #0056b3; 
+        }
+
+        #status {
+            margin-top: 20px;
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .url-list {
+            margin-top: 20px;
+            text-align: left;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 3px;
+            background-color: #f8f8f8;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .url-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px;
+            border-bottom: 10px solid #ddd;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .url-item:last-child {
+            border-bottom: none;
+        }
+
+        .url-item:hover {
+            background-color: #e8f0fe; 
+        }
+
+        .status-icon {
+            font-size: 20px; 
+            margin-right: 10px;
+        }
+
+        .modal, .edit-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5); 
+            padding-top: 60px;
+        }
+
+        .modal-content, .edit-modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .options-button {
+            margin-left: 10px;
+        }
+
+        .green { color: green; }
+        .red { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Keep-Alive Website</h1>
+        <p>Add websites to keep them alive every <span id="intervalDisplay">3</span> seconds.</p>
+        <input type="text" id="urlInput" placeholder="Enter website URL" required>
+        <input type="text" id="nameInput" placeholder="Enter a name for this URL" required>
+        <button onclick="addUrl()">Add URL to List</button>
+        
+        <!-- شريط تمرير لتحديد عدد الثواني -->
+        <input type="range" id="intervalSlider" min="1" max="30" value="3" oninput="updateIntervalDisplay(this.value)">
+        
+        <div class="url-list" id="urlListContainer"></div>
+        <p id="status"></p>
+    </div>
+
+    <!-- Modal لعرض المعلومات -->
+    <div id="urlModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalUrlTitle"></h2>
+            <p id="modalUrl"></p>
+            <div>
+                <button id="activateButton" onclick="activateUrl()">Activate</button>
+                <button id="stopButton" onclick="stopUrl()">Stop</button>
+                <button id="deleteButton" onclick="deleteUrl()">Delete</button>
+                <button id="editButton" onclick="openEditModal()">Edit Name and URL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal لتعديل الاسم والرابط -->
+    <div id="editModal" class="edit-modal">
+        <div class="edit-modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h2>Edit URL and Name</h2>
+            <input type="text" id="editUrlInput" placeholder="Edit website URL" required>
+            <input type="text" id="editNameInput" placeholder="Edit name for this URL" required>
+            <button onclick="saveEdit()">Save Changes</button>
+        </div>
+    </div>
+
+    <script>
+        let urls = [];
+        let names = [];
+        let activeUrls = new Set();
+        let currentIndex = -1;
+        let intervalTime = 3000; // الوقت الافتراضي 3 ثواني
+        let keepAliveInterval; // متغير لتخزين معرف التوقيت
+
+        // تحميل البيانات عند بدء الصفحة
+        window.onload = function() {
+            const savedUrls = JSON.parse(localStorage.getItem('urls')) || [];
+            const savedNames = JSON.parse(localStorage.getItem('names')) || [];
+            urls = savedUrls;
+            names = savedNames;
+            updateUrlList();
+            startKeepAlive();
+        };
+
+        // تحديث عرض عدد الثواني
+        function updateIntervalDisplay(value) {
+            document.getElementById('intervalDisplay').innerText = value;
+            intervalTime = value * 1000; // تحويل الثواني إلى ميلي ثانية
+            restartKeepAlive(); // إعادة تشغيل عملية keep alive مع التوقيت الجديد
+        }
+
+        // إضافة رابط إلى القائمة
+        function addUrl() {
+            const url = document.getElementById('urlInput').value.trim();
+            const name = document.getElementById('nameInput').value.trim();
+            if (url && name && !urls.includes(url)) {
+                urls.push(url);
+                names.push(name);
+                saveUrls();
+                updateUrlList();
+                document.getElementById('urlInput').value = ''; 
+                document.getElementById('nameInput').value = ''; 
+            }
+        }
+
+        // تحديث عرض قائمة الروابط
+        function updateUrlList() {
+            const urlListContainer = document.getElementById('urlListContainer');
+            urlListContainer.innerHTML = '';
+            urls.forEach((url, index) => {
+                const urlItem = document.createElement('div');
+                urlItem.classList.add('url-item');
+                urlItem.innerHTML = `
+                    <span class="url-name">${names[index]}</span>
+                    <button class="options-button" onclick="openModal(${index})">Options</button>
+                `;
+                urlListContainer.appendChild(urlItem);
+            });
+        }
+
+        // حفظ الروابط في localStorage
+        function saveUrls() {
+            localStorage.setItem('urls', JSON.stringify(urls));
+            localStorage.setItem('names', JSON.stringify(names));
+        }
+
+        // فتح المودال لعرض التفاصيل
+        function openModal(index) {
+            currentIndex = index;
+            const url = urls[index];
+            document.getElementById('modalUrlTitle').innerText = names[index];
+            document.getElementById('modalUrl').innerText = url;
+            document.getElementById('urlModal').style.display = 'block';
+        }
+
+        // إغلاق المودال
+        function closeModal() {
+            document.getElementById('urlModal').style.display = 'none';
+        }
+
+        // تفعيل الرابط
+        function activateUrl() {
+            if (currentIndex !== -1) {
+                const url = urls[currentIndex];
+                activeUrls.add(url);
+                restartKeepAlive();
+                document.getElementById('status').innerText = `${names[currentIndex]} activated.`;
+                closeModal();
+            }
+        }
+
+        // إيقاف تفعيل الرابط
+        function stopUrl() {
+            if (currentIndex !== -1) {
+                const url = urls[currentIndex];
+                activeUrls.delete(url);
+                restartKeepAlive();
+                document.getElementById('status').innerText = `${names[currentIndex]} stopped.`;
+                closeModal();
+            }
+        }
+
+        // حذف الرابط
+        function deleteUrl() {
+            if (currentIndex !== -1) {
+                const url = urls[currentIndex];
+                urls.splice(currentIndex, 1);
+                names.splice(currentIndex, 1);
+                saveUrls();
+                updateUrlList();
+                activeUrls.delete(url);
+                restartKeepAlive();
+                document.getElementById('status').innerText = `${names[currentIndex]} deleted.`;
+                closeModal();
+            }
+        }
+
+        // فتح مودال تعديل الاسم والرابط
+        function openEditModal() {
+            document.getElementById('editUrlInput').value = urls[currentIndex];
+            document.getElementById('editNameInput').value = names[currentIndex];
+            document.getElementById('editModal').style.display = 'block';
+            closeModal();
+        }
+
+        // إغلاق مودال التعديل
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // حفظ التعديلات
+        function saveEdit() {
+            const newUrl = document.getElementById('editUrlInput').value.trim();
+            const newName = document.getElementById('editNameInput').value.trim();
+            if (newUrl && newName && currentIndex !== -1) {
+                urls[currentIndex] = newUrl;
+                names[currentIndex] = newName;
+                saveUrls();
+                updateUrlList();
+                document.getElementById('status').innerText = `${newName} updated.`;
+                closeEditModal();
+            }
+        }
+
+        // بدء عملية keep alive
+        function startKeepAlive() {
+            keepAliveInterval = setInterval(() => {
+                activeUrls.forEach(url => {
+                    fetch(url)
+                        .then(response => {
+                            if (response.ok) {
+                                console.log(`Fetched ${url}`);
+                            } else {
+                                console.error(`Failed to fetch ${url}`);
+                            }
+                        })
+                        .catch(error => {
+                            console.error(`Error fetching ${url}:`, error);
+                        });
+                });
+            }, intervalTime);
+        }
+
+        // إعادة تشغيل عملية keep alive بعد تحديث التوقيت أو القائمة
+        function restartKeepAlive() {
+            clearInterval(keepAliveInterval);
+            startKeepAlive();
+        }
+    </script>
+
+    <!-- تسجيل Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+                console.log('Service Worker registered with scope:', registration.scope);
+            }).catch(error => {
+                console.error('Service Worker registration failed:', error);
+            });
+        }
+    </script>
+</body>
+</html>
